@@ -44,18 +44,25 @@ function Game:new(baseWidth, baseHeight)
 	---@type Pole
 	local pole = {
 		shader = love.graphics.newShader[[
-			vec4 effect( vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords ) {
+			uniform float rotation;
+			vec4 effect(vec4 color, Image texture, vec2 texture_coords, vec2 screen_coords) {
 				texture_coords = vec2(texture_coords.x, 1. - texture_coords.y);
 				vec2 uv = texture_coords * 2. - 1.;
 				vec3 normal = vec3(uv.x, 0., sqrt(1. - uv.x * uv.x));
 				vec3 pos = vec3(uv, normal.z);
 
-				vec3 sun = vec3(2., 1., 2.);
-
+				mat3 rot = mat3(
+					cos(rotation), 0., -sin(rotation),
+					0., 1., 0.,
+					sin(rotation), 0., cos(rotation)
+				);
+			
+				vec3 sun = rot * vec3(2., 1., 2.);
+			
 				vec3 delta_pos = sun - pos;
 				float cosine = dot(normal, normalize(delta_pos));
 				float intensity = (cosine + 1.)/2.;
-
+			
 				return vec4(vec3(intensity), 1.);
 			}
 		]],
@@ -93,6 +100,10 @@ end
 function love.load()
 	local success = love.window.setMode(BASE_WIDTH, BASE_HEIGHT, {resizable=false})
 	towerJumper = Game:new(BASE_WIDTH, BASE_HEIGHT)
+end
+
+function love.update(dt)
+	towerJumper.pole.shader:send("rotation", love.timer.getTime())
 end
 
 function love.draw()
